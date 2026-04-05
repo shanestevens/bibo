@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f6efdf;
+  --paper-strong: #eee1c7;
+  --paper-panel: rgba(255, 250, 242, 0.82);
+  --paper-panel-strong: rgba(255, 251, 245, 0.94);
+  --ink: #2f2419;
+  --muted: #7e6c58;
+  --line: rgba(104, 78, 44, 0.2);
+  --line-strong: rgba(104, 78, 44, 0.34);
+  --accent: #8f6d39;
+  --accent-soft: rgba(143, 109, 57, 0.12);
+  --wine: #8e3e35;
+  --shadow: 0 22px 55px rgba(103, 76, 39, 0.12);
+  --font-serif: "Crimson Pro", Georgia, serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(circle at top, rgba(255, 252, 244, 0.95), transparent 38%),
+    linear-gradient(180deg, #ecdfc8 0%, #f7f1e6 28%, #efe3d2 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 22px,
+      rgba(126, 108, 88, 0.025) 22px,
+      rgba(126, 108, 88, 0.025) 23px
+    ),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.4), transparent 26%);
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(164, 126, 63, 0.24);
+}
