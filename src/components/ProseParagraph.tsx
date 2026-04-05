@@ -3,10 +3,16 @@ import type { ProseParagraphBlock } from '../lib/types'
 import { VerseNumber } from './VerseNumber'
 
 interface ProseParagraphProps {
+  highlightedVerseNumbers?: number[]
   paragraph: ProseParagraphBlock
 }
 
-export function ProseParagraph({ paragraph }: ProseParagraphProps) {
+export function ProseParagraph({
+  highlightedVerseNumbers = [],
+  paragraph,
+}: ProseParagraphProps) {
+  const highlightedVerseSet = new Set(highlightedVerseNumbers)
+
   return (
     <p
       className={[
@@ -19,7 +25,12 @@ export function ProseParagraph({ paragraph }: ProseParagraphProps) {
           key={`${verse.num}-${verse.continuation ? 'continued' : 'start'}-${verse.text?.slice(0, 16) ?? index}`}
         >
           <span
-            className={verse.redLetter ? 'cursor-text text-[var(--wine)]' : 'cursor-text'}
+            className={[
+              verse.redLetter ? 'cursor-text text-[var(--wine)]' : 'cursor-text',
+              highlightedVerseSet.has(verse.num)
+                ? 'spotlight-verse scroll-mt-40 rounded-[0.55rem] px-[0.18rem] py-[0.05rem]'
+                : '',
+            ].join(' ')}
             data-verse-number={verse.num}
           >
             {!verse.continuation ? (

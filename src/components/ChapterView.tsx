@@ -1,15 +1,26 @@
 import type { RefObject } from 'react'
-import type { BibleBook, Chapter, PoetryParagraphBlock, ProseParagraphBlock } from '../lib/types'
+import type {
+  BibleBook,
+  Chapter,
+  PoetryParagraphBlock,
+  ProseParagraphBlock,
+} from '../lib/types'
 import { PoetryParagraph } from './PoetryParagraph'
 import { ProseParagraph } from './ProseParagraph'
 
 interface ChapterViewProps {
   book: BibleBook
   chapter: Chapter
+  highlightedVerseNumbers?: number[]
   selectionRootRef?: RefObject<HTMLElement | null>
 }
 
-export function ChapterView({ book, chapter, selectionRootRef }: ChapterViewProps) {
+export function ChapterView({
+  book,
+  chapter,
+  highlightedVerseNumbers = [],
+  selectionRootRef,
+}: ChapterViewProps) {
   const chapterLabel = book.chapterLabel ?? 'Chapter'
 
   return (
@@ -71,6 +82,7 @@ export function ChapterView({ book, chapter, selectionRootRef }: ChapterViewProp
           if (block.type === 'poetry') {
             return (
               <PoetryParagraph
+                highlightedVerseNumbers={highlightedVerseNumbers}
                 key={`poetry-${index}`}
                 paragraph={block as PoetryParagraphBlock}
               />
@@ -79,6 +91,7 @@ export function ChapterView({ book, chapter, selectionRootRef }: ChapterViewProp
 
           return (
             <ProseParagraph
+              highlightedVerseNumbers={highlightedVerseNumbers}
               key={`prose-${index}`}
               paragraph={block as ProseParagraphBlock}
             />

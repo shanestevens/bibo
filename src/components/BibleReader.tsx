@@ -7,6 +7,9 @@ import {
   useTransition,
 } from 'react'
 import {
+  inspirationalMoments,
+} from '../data/inspirationalMoments'
+import {
   bookCatalog,
   findCatalogEntry,
   loadBook,
@@ -19,10 +22,12 @@ import { AskPanel } from './AskPanel'
 import { BookPicker } from './BookPicker'
 import { ChapterNav } from './ChapterNav'
 import { ChapterView } from './ChapterView'
+import { MomentsPicker } from './MomentsPicker'
 
 export function BibleReader() {
   const [selectedBook, setSelectedBook] = useState<PhaseOneBookCode>('GEN')
   const [selectedChapter, setSelectedChapter] = useState(1)
+  const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null)
   const [loadedBook, setLoadedBook] = useState<BibleBook | null>(null)
   const [isLoadingBook, setIsLoadingBook] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -33,6 +38,8 @@ export function BibleReader() {
   const selectionRootRef = useRef<HTMLElement | null>(null)
 
   const currentCatalogEntry = findCatalogEntry(selectedBook)
+  const activeMoment =
+    inspirationalMoments.find((moment) => moment.id === selectedMomentId) ?? null
   const chapterCount = loadedBook?.chapters.length ?? currentCatalogEntry.chapters
   const currentChapter =
     loadedBook?.chapters.find((chapter) => chapter.number === selectedChapter) ?? null
@@ -85,12 +92,57 @@ export function BibleReader() {
     }
   }, [selectedBook])
 
-  const changeSelection = (nextBook: PhaseOneBookCode, nextChapter: number) => {
+  useEffect(() => {
+    if (
+      !activeMoment ||
+      !selectionRootRef.current ||
+      isLoadingBook ||
+      selectedBook !== activeMoment.bookCode ||
+      selectedChapter !== activeMoment.chapterNumber
+    ) {
+      return
+    }
+
+    const verseNumber = activeMoment.verseNumbers[0]
+    const verseNode = selectionRootRef.current.querySelector<HTMLElement>(
+      `[data-verse-number="${verseNumber}"]`,
+    )
+
+    if (!verseNode) {
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      verseNode.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [activeMoment, isLoadingBook, selectedBook, selectedChapter])
+
+  const changeSelection = (
+    nextBook: PhaseOneBookCode,
+    nextChapter: number,
+    options?: {
+      preserveMoment?: boolean
+    },
+  ) => {
+    const isBookChange = nextBook !== selectedBook
+
     clearSelection()
+    if (!options?.preserveMoment) {
+      setSelectedMomentId(null)
+    }
     startTransition(() => {
-      setIsLoadingBook(true)
       setLoadError(null)
-      setSelectedBook(nextBook)
+      if (isBookChange) {
+        setIsLoadingBook(true)
+        setSelectedBook(nextBook)
+      }
       setSelectedChapter(nextChapter)
     })
   }
@@ -100,9 +152,23 @@ export function BibleReader() {
   }
 
   const selectChapter = (nextChapter: number) => {
-    clearSelection()
-    startTransition(() => {
-      setSelectedChapter(nextChapter)
+    changeSelection(selectedBook, nextChapter)
+  }
+
+  const selectMoment = (momentId: string) => {
+    if (!momentId) {
+      setSelectedMomentId(null)
+      return
+    }
+
+    const moment = inspirationalMoments.find((entry) => entry.id === momentId)
+    if (!moment) {
+      return
+    }
+
+    setSelectedMomentId(moment.id)
+    changeSelection(moment.bookCode, moment.chapterNumber, {
+      preserveMoment: true,
     })
   }
 
@@ -171,20 +237,20 @@ export function BibleReader() {
   return (
     <div
       className={[
-        'min-h-screen px-4 pb-24 pt-4 sm:px-6 sm:pt-6',
-        selectedPassage ? 'pb-[22rem] sm:pb-[20rem]' : '',
+        'min-h-screen px-4 pb-24 pt-3 sm:px-6 sm:pt-5',
+        selectedPassage ? 'pb-[31rem] sm:pb-[25rem] lg:pb-[22rem]' : '',
       ].join(' ')}
     >
       <div className="mx-auto max-w-5xl">
         <header className="sticky top-3 z-20 rounded-[1.15rem] border border-[var(--line)] bg-[var(--paper-panel-strong)]/92 px-3 py-3 shadow-[0_10px_24px_rgba(58,41,20,0.08)] backdrop-blur-md sm:px-4">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 px-1">
               <div className="min-w-0">
                 <p className="text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-[var(--muted)]">
                   Bibo
                 </p>
-                <p className="mt-1 text-[0.94rem] text-[var(--muted)]">
-                  Highlight any line to ask for context, meaning, or a simpler explanation.
+                <p className="mt-1 text-[0.92rem] text-[var(--muted)]">
+                  Read like a book. Tap into a guided moment or highlight any line for a simple explanation.
                 </p>
               </div>
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[var(--muted)]">
@@ -192,7 +258,7 @@ export function BibleReader() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
               <BookPicker
                 books={bookCatalog}
                 onSelectBook={selectBook}
@@ -209,6 +275,29 @@ export function BibleReader() {
                 onSelectChapter={selectChapter}
               />
             </div>
+
+            <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-center">
+              <MomentsPicker
+                onSelectMoment={selectMoment}
+                selectedMomentId={selectedMomentId}
+              />
+              <div className="flex min-h-11 items-center rounded-[0.9rem] border border-[var(--line)] bg-white/52 px-3.5 py-2 text-[0.85rem] text-[var(--muted)]">
+                {activeMoment ? (
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[var(--ink)]">
+                      {activeMoment.label}
+                    </p>
+                    <p className="truncate">
+                      {activeMoment.reference} - {activeMoment.prompt}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="truncate">
+                    {currentCatalogEntry.descriptor}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </header>
 
@@ -218,7 +307,9 @@ export function BibleReader() {
           onTouchStart={handleTouchStart}
         >
           <div className="mb-3 flex items-center justify-between gap-3 px-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">
-            <span className="truncate">{currentCatalogEntry.descriptor}</span>
+            <span className="truncate">
+              {activeMoment ? `Start Here - ${activeMoment.reference}` : currentCatalogEntry.descriptor}
+            </span>
             <span className="shrink-0">
               {chapterLabel} {selectedChapter} / {chapterCount}
             </span>
@@ -249,12 +340,37 @@ export function BibleReader() {
             </section>
           ) : (
             <>
-              <div className="mb-3 text-center text-[0.88rem] text-[var(--muted)]">
-                Highlight any verse or sentence to open the study panel.
-              </div>
+              {activeMoment ? (
+                <section className="mx-auto mb-3 flex max-w-[40rem] items-start justify-between gap-4 rounded-[1.15rem] border border-[rgba(143,109,57,0.22)] bg-[rgba(243,229,196,0.72)] px-4 py-3 text-[0.92rem] text-[var(--ink)] shadow-[0_10px_24px_rgba(143,109,57,0.1)]">
+                  <div className="min-w-0">
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">
+                      Start Here
+                    </p>
+                    <p className="mt-1 font-semibold">{activeMoment.label}</p>
+                    <p className="mt-1 text-[var(--muted)]">{activeMoment.prompt}</p>
+                  </div>
+                  <button
+                    className="shrink-0 rounded-full border border-[rgba(143,109,57,0.22)] bg-white/60 px-3 py-1.5 text-[0.82rem] text-[var(--muted)] transition hover:text-[var(--ink)]"
+                    onClick={() => setSelectedMomentId(null)}
+                    type="button"
+                  >
+                    Clear
+                  </button>
+                </section>
+              ) : (
+                <div className="mb-3 text-center text-[0.88rem] text-[var(--muted)]">
+                  Highlight any verse or sentence to open the study tray.
+                </div>
+              )}
               <ChapterView
                 book={loadedBook}
                 chapter={currentChapter}
+                highlightedVerseNumbers={
+                  activeMoment?.bookCode === selectedBook &&
+                  activeMoment.chapterNumber === selectedChapter
+                    ? activeMoment.verseNumbers
+                    : []
+                }
                 selectionRootRef={selectionRootRef}
               />
             </>
