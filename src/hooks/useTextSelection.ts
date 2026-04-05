@@ -86,9 +86,9 @@ export function useTextSelection({
 
       setSelectionAction({
         left: clampSelectionLeft(selectionRect.left + selectionRect.width / 2),
-        placement: selectionRect.top > 96 ? 'above' : 'below',
+        placement: 'below',
         passage: nextPassage,
-        top: selectionRect.top > 96 ? selectionRect.top : selectionRect.bottom,
+        top: clampSelectionTop(selectionRect.bottom),
       })
     }
 
@@ -105,7 +105,15 @@ export function useTextSelection({
       }
     }
 
-    const handlePointerDown = () => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (
+        target instanceof Element &&
+        target.closest('[data-selection-ask-button="true"]')
+      ) {
+        return
+      }
+
       isPointerDownRef.current = true
       clearSelectionAction()
     }
@@ -153,4 +161,9 @@ function clampSelectionLeft(value: number): number {
     Math.max(value, horizontalPadding),
     window.innerWidth - horizontalPadding,
   )
+}
+
+function clampSelectionTop(value: number): number {
+  const bottomPadding = 84
+  return Math.min(value, window.innerHeight - bottomPadding)
 }
