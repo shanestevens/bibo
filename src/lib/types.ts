@@ -75,6 +75,13 @@ export interface SelectedPassage {
   verseNumbers: number[]
 }
 
+export interface SelectionAction {
+  left: number
+  placement: 'above' | 'below'
+  passage: SelectedPassage
+  top: number
+}
+
 export interface ConversationTurn {
   role: 'user' | 'assistant'
   content: string

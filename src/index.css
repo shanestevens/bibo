@@ -80,6 +80,18 @@ textarea {
     0 10px 20px rgba(143, 109, 57, 0.08);
 }
 
+.selection-ask-bubble {
+  border: 1px solid rgba(122, 85, 33, 0.28);
+  background:
+    linear-gradient(180deg, rgba(171, 111, 40, 0.98), rgba(150, 93, 28, 0.98));
+}
+
+.selection-ask-bubble-nub {
+  border-inline-end: 1px solid rgba(122, 85, 33, 0.18);
+  border-block-end: 1px solid rgba(122, 85, 33, 0.18);
+  background: rgba(150, 93, 28, 0.98);
+}
+
 ::selection {
   background: rgba(164, 126, 63, 0.24);
 }

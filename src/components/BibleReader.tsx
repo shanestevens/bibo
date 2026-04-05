@@ -6,9 +6,7 @@ import {
   useState,
   useTransition,
 } from 'react'
-import {
-  inspirationalMoments,
-} from '../data/inspirationalMoments'
+import { inspirationalMoments } from '../data/inspirationalMoments'
 import {
   bookCatalog,
   findCatalogEntry,
@@ -17,17 +15,19 @@ import {
 } from '../data/bookCatalog'
 import { useConversation } from '../hooks/useConversation'
 import { useTextSelection } from '../hooks/useTextSelection'
-import type { BibleBook } from '../lib/types'
+import type { BibleBook, SelectedPassage } from '../lib/types'
 import { AskPanel } from './AskPanel'
 import { BookPicker } from './BookPicker'
 import { ChapterNav } from './ChapterNav'
 import { ChapterView } from './ChapterView'
 import { MomentsPicker } from './MomentsPicker'
+import { SelectionAskButton } from './SelectionAskButton'
 
 export function BibleReader() {
   const [selectedBook, setSelectedBook] = useState<PhaseOneBookCode>('GEN')
   const [selectedChapter, setSelectedChapter] = useState(1)
   const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null)
+  const [activePassage, setActivePassage] = useState<SelectedPassage | null>(null)
   const [loadedBook, setLoadedBook] = useState<BibleBook | null>(null)
   const [isLoadingBook, setIsLoadingBook] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -44,13 +44,13 @@ export function BibleReader() {
   const currentChapter =
     loadedBook?.chapters.find((chapter) => chapter.number === selectedChapter) ?? null
   const chapterLabel = loadedBook?.chapterLabel ?? 'Chapter'
-  const { clearSelection, selectedPassage } = useTextSelection({
+  const { clearSelection, selectionAction } = useTextSelection({
     bookName: loadedBook?.name ?? null,
     chapter: currentChapter,
     containerRef: selectionRootRef,
   })
-  const conversationResetKey = selectedPassage
-    ? `${selectedPassage.reference}:${selectedPassage.text}`
+  const conversationResetKey = activePassage
+    ? `${activePassage.reference}:${activePassage.text}`
     : `${selectedBook}:${selectedChapter}`
   const {
     askQuestion,
@@ -134,9 +134,11 @@ export function BibleReader() {
     const isBookChange = nextBook !== selectedBook
 
     clearSelection()
+    setActivePassage(null)
     if (!options?.preserveMoment) {
       setSelectedMomentId(null)
     }
+
     startTransition(() => {
       setLoadError(null)
       if (isBookChange) {
@@ -229,6 +231,20 @@ export function BibleReader() {
     goToAdjacentChapter('backward')
   }
 
+  const openAskPanel = () => {
+    if (!selectionAction) {
+      return
+    }
+
+    setActivePassage(selectionAction.passage)
+    clearSelection()
+  }
+
+  const closeAskPanel = () => {
+    setActivePassage(null)
+    clearSelection()
+  }
+
   const currentBookIndex = bookCatalog.findIndex((book) => book.code === selectedBook)
   const canGoBackward = selectedChapter > 1 || currentBookIndex > 0
   const canGoForward =
@@ -238,7 +254,7 @@ export function BibleReader() {
     <div
       className={[
         'min-h-screen px-4 pb-24 pt-3 sm:px-6 sm:pt-5',
-        selectedPassage ? 'pb-[31rem] sm:pb-[25rem] lg:pb-[22rem]' : '',
+        activePassage ? 'pb-[31rem] sm:pb-[25rem] lg:pb-[22rem]' : '',
       ].join(' ')}
     >
       <div className="mx-auto max-w-5xl">
@@ -250,7 +266,7 @@ export function BibleReader() {
                   Bibo
                 </p>
                 <p className="mt-1 text-[0.92rem] text-[var(--muted)]">
-                  Read like a book. Tap into a guided moment or highlight any line for a simple explanation.
+                  Read like a book. Tap into a guided moment or highlight any line, then ask in plain language.
                 </p>
               </div>
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[var(--muted)]">
@@ -292,9 +308,7 @@ export function BibleReader() {
                     </p>
                   </div>
                 ) : (
-                  <p className="truncate">
-                    {currentCatalogEntry.descriptor}
-                  </p>
+                  <p className="truncate">{currentCatalogEntry.descriptor}</p>
                 )}
               </div>
             </div>
@@ -308,7 +322,9 @@ export function BibleReader() {
         >
           <div className="mb-3 flex items-center justify-between gap-3 px-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">
             <span className="truncate">
-              {activeMoment ? `Start Here - ${activeMoment.reference}` : currentCatalogEntry.descriptor}
+              {activeMoment
+                ? `Start Here - ${activeMoment.reference}`
+                : currentCatalogEntry.descriptor}
             </span>
             <span className="shrink-0">
               {chapterLabel} {selectedChapter} / {chapterCount}
@@ -359,9 +375,10 @@ export function BibleReader() {
                 </section>
               ) : (
                 <div className="mb-3 text-center text-[0.88rem] text-[var(--muted)]">
-                  Highlight any verse or sentence to open the study tray.
+                  Highlight any verse or sentence, then tap Ask about this.
                 </div>
               )}
+
               <ChapterView
                 book={loadedBook}
                 chapter={currentChapter}
@@ -378,16 +395,20 @@ export function BibleReader() {
         </main>
       </div>
 
-      {selectedPassage ? (
+      {selectionAction && !activePassage ? (
+        <SelectionAskButton action={selectionAction} onAsk={openAskPanel} />
+      ) : null}
+
+      {activePassage ? (
         <AskPanel
           error={conversationError}
           isLoading={isAsking}
           messages={messages}
           onAskQuestion={async (question) => {
-            await askQuestion(selectedPassage, question)
+            await askQuestion(activePassage, question)
           }}
-          onClose={clearSelection}
-          passage={selectedPassage}
+          onClose={closeAskPanel}
+          passage={activePassage}
         />
       ) : null}
     </div>
