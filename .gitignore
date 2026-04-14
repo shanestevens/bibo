@@ -12,6 +12,7 @@ dist
 dist-ssr
 .vercel
 *.local
+.env
 usfm/
 
 # Editor directories and files
